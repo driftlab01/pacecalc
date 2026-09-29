@@ -1093,6 +1093,7 @@ const ALL_DISTS=(()=>{
   d.push({id:'d_100m',km:0.1});
   d.push({id:'d_200m',km:0.2});
   d.push({id:'d_400', km:0.4});
+  d.push({id:'d_600m',km:0.6});
   d.push({id:'d_800m',km:0.8});
   d.push({id:'d_1500',km:1.5});
   d.push({id:'d_mile',km:1.60934});
@@ -1109,6 +1110,7 @@ function distName(id,km){
   if(id==='d_100m') return '100 m';
   if(id==='d_200m') return '200 m';
   if(id==='d_400')  return '400 m';
+  if(id==='d_600m') return '600 m';
   if(id==='d_800m') return '800 m';
   if(id==='d_1500') return '1 500 m';
   if(id==='d_mile') return '1 mile';
@@ -1358,15 +1360,15 @@ function bumpAnim(el,dir){el.classList.remove('bump','bump-down');void el.offset
 
 // ═══ JACK DANIELS VDOT ZONE SYSTEM ════════════
 // Ref: Daniels' Running Formula (3rd ed.)
-// VDOT is calculated from a race result, then training paces
-// are derived at specific %VO2max levels using Daniels' formula.
+// VDOT is calculated from a 10K result; Daniels' race curve then gives the
+// pace sustainable for a given duration, which anchors the OLT zone borders.
 
 const ZONE_DEF=[
-  {id:1,color:'#94a3b8', name:{no:'Intensitetssone 1',en:'Intensity zone 1'}, desc:{no:'Veldig lett · Kan prate uanstrengt',en:'Very easy · Can talk freely'},           pctLo:0,    pctHi:0.70},
-  {id:2,color:'#60a5fa', name:{no:'Intensitetssone 2',en:'Intensity zone 2'}, desc:{no:'Nokså lett · Kan si lengre setninger relativt uanstrengt',en:'Fairly easy · Can say longer sentences fairly easily'}, pctLo:0.70, pctHi:0.83},
-  {id:3,color:'#4ade80', name:{no:'Intensitetssone 3',en:'Intensity zone 3'}, desc:{no:'Behagelig anstrengende · Kan si korte setninger',en:'Comfortably hard · Can say short sentences'},               pctLo:0.83, pctHi:0.88},
-  {id:4,color:'#fbbf24', name:{no:'Intensitetssone 4',en:'Intensity zone 4'}, desc:{no:'Anstrengende · Kan si noen ord eller svært korte setninger',en:'Hard · Can say a few words or very short sentences'}, pctLo:0.88, pctHi:0.95},
-  {id:5,color:'#ef4444', name:{no:'Intensitetssone 5',en:'Intensity zone 5'}, desc:{no:'Veldig anstrengende · Kan kun si et ord eller to, puster tungt',en:'Very hard · Can only say a word or two, breathing heavily'}, pctLo:0.95, pctHi:Infinity},
+  {id:1,color:'#94a3b8', name:{no:'Intensitetssone 1',en:'Intensity zone 1'}, desc:{no:'Veldig lett · Kan prate uanstrengt',en:'Very easy · Can talk freely'}},
+  {id:2,color:'#60a5fa', name:{no:'Intensitetssone 2',en:'Intensity zone 2'}, desc:{no:'Nokså lett · Kan si lengre setninger relativt uanstrengt',en:'Fairly easy · Can say longer sentences fairly easily'}},
+  {id:3,color:'#4ade80', name:{no:'Intensitetssone 3',en:'Intensity zone 3'}, desc:{no:'Behagelig anstrengende · Kan si korte setninger',en:'Comfortably hard · Can say short sentences'}},
+  {id:4,color:'#fbbf24', name:{no:'Intensitetssone 4',en:'Intensity zone 4'}, desc:{no:'Anstrengende · Kan si noen ord eller svært korte setninger',en:'Hard · Can say a few words or very short sentences'}},
+  {id:5,color:'#ef4444', name:{no:'Intensitetssone 5',en:'Intensity zone 5'}, desc:{no:'Veldig anstrengende · Kan kun si et ord eller to, puster tungt',en:'Very hard · Can only say a word or two, breathing heavily'}},
 ];
 
 // Daniels' formula: %VO2max from race duration (t in minutes)
@@ -1394,6 +1396,9 @@ function calcVDOT(distKm, timeSec){
   return vo2fromVelocity(v) / pctVO2fromTime(t);
 }
 
+// Threshold ≈ pace you could race for ~60 min (≈4 mmol, OLT I3/I4 border)
+function thresholdPaceSec(t10){ return vdotToPaceSec(calcVDOT(10, t10), pctVO2fromTime(60)); }
+
 let cachedVDOT = null;
 function getVDOT(){
   if(!t10kSec) return null;
@@ -1403,21 +1408,21 @@ function getVDOT(){
 
 function getZoneBounds(){
   const vdot = getVDOT();
-  if(!vdot){
-    // Fallback generic bounds when no 10K time set (based on 5:00/km default)
-    return ZONE_DEF.map((z,i)=>{
-      const paces=[Infinity,420,360,310,270,0];
-      return {...z, minS:paces[i+1]||0, maxS:paces[i]};
-    });
-  }
-  return ZONE_DEF.map(z=>({
-    ...z,
-    maxS: z.pctLo===0    ? Infinity : vdotToPaceSec(vdot, z.pctLo),
-    minS: z.pctHi===Infinity ? 0    : vdotToPaceSec(vdot, z.pctHi),
-  }));
+  if(!vdot) return null; // zones are personal — no guessing without a 10K time
+  // Olympiatoppen defines I1–I5 by lactate/HR, not pace. Borders are estimated
+  // from race-equivalent durations on Daniels' race curve:
+  //   I1/I2 ≈2 mmol  → threshold pace +25 %
+  //   I2/I3 ≈2.5 mmol → pace you could race for ~150 min
+  //   I3/I4 ≈4 mmol  → pace you could race for ~60 min (threshold)
+  //   I4/I5 ≈6 mmol  → pace you could race for ~30 min
+  const racePace = min => vdotToPaceSec(vdot, pctVO2fromTime(min));
+  const thr = racePace(60);
+  const borders = [Infinity, Math.round(thr*1.25), racePace(150), thr, racePace(30), 0];
+  return ZONE_DEF.map((z,i)=>({...z, maxS:borders[i], minS:borders[i+1]}));
 }
 function getZone(s){
   const zones=getZoneBounds();
+  if(!zones) return null;
   return zones.find(z=>s>=z.minS&&(z.maxS===Infinity||s<z.maxS))||zones[zones.length-1];
 }
 function buildZoneSpectrum(){
@@ -1430,14 +1435,20 @@ function updateZone(){
   const dot=document.getElementById('zoneDot'),nm=document.getElementById('zoneName'),
         dc=document.getElementById('zoneDesc'),rng=document.getElementById('zoneRange');
   if(!dot)return;
-  dot.style.background=z.color;dot.style.boxShadow='0 0 12px '+z.color+',0 0 4px '+z.color;
-  nm.textContent=z.name[lang]||z.name.no;
-  dc.textContent=z.desc[lang]||z.desc.no;
-  if(!t10kSec){
+  if(!z){
+    dot.style.background='var(--dim)';dot.style.boxShadow='none';
+    nm.textContent=lang==='no'?'Intensitetssone':'Intensity zone';
+    dc.textContent=lang==='no'?'Legg inn 10K-tid for å se sonen din':'Add your 10K time to see your zone';
     rng.textContent=lang==='no'?'Sett 10K-tid ›':'Set 10K time ›';
     rng.style.color='var(--red)';rng.style.cursor='pointer';
     rng.onclick=()=>openSheet('userOverlay');
-  } else {
+    ZONE_DEF.forEach(zz=>{const sg=document.getElementById('zseg_'+zz.id);if(sg)sg.classList.remove('active');});
+    return;
+  }
+  dot.style.background=z.color;dot.style.boxShadow='0 0 12px '+z.color+',0 0 4px '+z.color;
+  nm.textContent=z.name[lang]||z.name.no;
+  dc.textContent=z.desc[lang]||z.desc.no;
+  {
     rng.style.color='';rng.style.cursor='';rng.onclick=null;
     const lo=z.maxS===Infinity?'> '+fmtPace(z.minS):fmtPace(z.maxS);
     const hi=z.minS===0?'< '+fmtPace(z.maxS):fmtPace(z.minS);
@@ -1549,7 +1560,7 @@ function buildUserSheet(){
     </div>
     <button onclick="apply10k()" style="width:100%;padding:14px;border-radius:14px;border:none;background:var(--blue);
             color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif">${t10kSave}</button>
-    ${t10kSec?`<div style="font-size:11px;color:var(--dim);margin-top:8px;text-align:center">${lang==='no'?'Terskel-pace':'Threshold pace'}: <b style="color:var(--txt)">${fmtPace(Math.round(t10kSec/10))}/km</b></div>`:''}
+    ${t10kSec?`<div style="font-size:11px;color:var(--dim);margin-top:8px;text-align:center">${lang==='no'?'Terskel-pace':'Threshold pace'}: <b style="color:var(--txt)">${fmtPace(thresholdPaceSec(t10kSec))}/km</b></div>`:''}
   </div>`;
   if(curUser){
     hd.innerHTML=`<div class="handle"></div><div class="profile-row"><div class="pav">${curUser.photoURL?`<img src="${curUser.photoURL}">`:( curUser.displayName||'?')[0].toUpperCase()}</div><div><div class="pn">${curUser.displayName||'User'}</div><div class="pe">${curUser.email||''}</div></div></div>`;
@@ -1572,7 +1583,7 @@ function apply10k(){
   const secs=m*60+s;
   if(secs<600||secs>7200){showToast(lang==='no'?'Ugyldig tid (10–120 min)':'Invalid time (10–120 min)');return;}
   save10k(secs);
-  showToast(lang==='no'?`✓ Terskel-pace: ${fmtPace(Math.round(secs/10))}/km`:`✓ Threshold pace: ${fmtPace(Math.round(secs/10))}/km`);
+  showToast(lang==='no'?`✓ Terskel-pace: ${fmtPace(thresholdPaceSec(secs))}/km`:`✓ Threshold pace: ${fmtPace(thresholdPaceSec(secs))}/km`);
 }
 
 // ═══ TAP → INPUT MODAL ════════════════════════
