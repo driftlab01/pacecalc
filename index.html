@@ -475,6 +475,12 @@ header{position:relative;z-index:10;display:flex;align-items:center;justify-cont
 .calc-res-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:4px}
 .calc-res-val{font-size:44px;font-weight:900;letter-spacing:-2px;color:var(--txt);font-variant-numeric:tabular-nums;line-height:1}
 .calc-res-unit{font-size:11px;color:var(--dim);margin-top:4px}
+.calc-seg{display:flex;gap:4px;padding:4px;margin-bottom:18px;background:var(--card2);border:1px solid var(--brd);border-radius:16px}
+.calc-seg-btn{flex:1;padding:10px 8px;border:none;border-radius:12px;background:transparent;color:var(--txt2);font-size:14px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:var(--tr)}
+.calc-seg-btn.active{background:var(--red);color:#fff;box-shadow:0 2px 10px rgba(232,21,42,0.3)}
+.calc-res-hint{font-size:12px;color:var(--txt2);text-align:center;margin:-4px 0 12px}
+.calc-res-hint:empty{display:none}
+.calc-apply-btn:disabled{opacity:0.35;cursor:default}
 .calc-apply-btn{width:100%;padding:14px;border-radius:17px;border:none;background:var(--red);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:opacity .2s}
 .calc-apply-btn:hover{opacity:0.85}
 .calc-clear-btn{
@@ -936,51 +942,71 @@ header{ border-bottom:1px solid var(--gl-brd) !important; }
   <div class="sheet">
     <div class="sheet-hd">
       <div class="handle"></div>
-      <div class="sheet-title" data-i18n="calcTitle">Beregn tempo fra løpstid</div>
-      <div class="sheet-sub" data-i18n="calcSub">Skriv inn distanse og tid — få eksakt pace</div>
+      <div class="sheet-title" data-i18n="calcTitle">Tempokalkulator</div>
+      <div class="sheet-sub" id="calcSub">Skriv inn distanse og tid — få eksakt tempo</div>
     </div>
     <div class="sheet-body">
+
+      <!-- Mode toggle -->
+      <div class="calc-seg">
+        <button class="calc-seg-btn active" id="calcModeTime" onclick="setCalcMode('time')" data-i18n="calcModeTime">Tid → tempo</button>
+        <button class="calc-seg-btn" id="calcModePace" onclick="setCalcMode('pace')" data-i18n="calcModePace">Tempo → tid</button>
+      </div>
 
       <!-- Distance -->
       <div class="calc-label" data-i18n="calcDist">Distanse</div>
       <div class="calc-dist-presets">
-        <button class="calc-pre" onclick="setCalcDist(5,0)">5 km</button>
-        <button class="calc-pre" onclick="setCalcDist(10,0)">10 km</button>
-        <button class="calc-pre" onclick="setCalcDist(21,97)" data-i18n="half">Halvmaraton</button>
-        <button class="calc-pre" onclick="setCalcDist(42,195)" data-i18n="marathon">Maraton</button>
+        <button class="calc-pre" data-km="5" data-m="0" onclick="setCalcDist(5,0)">5 km</button>
+        <button class="calc-pre" data-km="10" data-m="0" onclick="setCalcDist(10,0)">10 km</button>
+        <button class="calc-pre" data-km="21" data-m="97" onclick="setCalcDist(21,97)" data-i18n="half">Halvmaraton</button>
+        <button class="calc-pre" data-km="42" data-m="195" onclick="setCalcDist(42,195)" data-i18n="marathon">Maraton</button>
       </div>
       <div class="calc-dist-boxes">
         <div class="calc-dist-field">
-          <input class="calc-time-inp" id="calcKm" type="text" inputmode="numeric" maxlength="2" placeholder="10">
+          <input class="calc-time-inp" id="calcKm" type="text" inputmode="numeric" maxlength="2" placeholder="–">
           <span class="calc-field-lbl">km</span>
         </div>
         <span style="font-size:16px;color:var(--dim);flex-shrink:0;padding:0 2px">+</span>
         <div class="calc-dist-field">
-          <input class="calc-time-inp" id="calcMeters" type="text" inputmode="numeric" maxlength="3" placeholder="000">
+          <input class="calc-time-inp" id="calcMeters" type="text" inputmode="numeric" maxlength="3" placeholder="–">
           <span class="calc-field-lbl">m</span>
         </div>
         <button class="calc-clear-btn" onclick="clearCalcDist()" title="Nullstill distanse" style="font-size:16px;align-self:center;flex-shrink:0">↺</button>
       </div>
 
-      <!-- Time -->
+      <!-- Time (mode: time → pace) -->
+      <div id="calcTimeBlock">
       <div class="calc-label" data-i18n="calcTime" style="margin-top:16px">Tid (t : min : sek)</div>
       <div class="calc-time-row">
-        <input class="calc-time-inp" id="calcH" type="text" inputmode="numeric" maxlength="2" placeholder="00">
+        <input class="calc-time-inp" id="calcH" type="text" inputmode="numeric" maxlength="2" placeholder="–">
         <span class="calc-sep">:</span>
-        <input class="calc-time-inp" id="calcM" type="text" inputmode="numeric" maxlength="2" placeholder="40">
+        <input class="calc-time-inp" id="calcM" type="text" inputmode="numeric" maxlength="2" placeholder="–">
         <span class="calc-sep">:</span>
-        <input class="calc-time-inp" id="calcS" type="text" inputmode="numeric" maxlength="2" placeholder="20">
+        <input class="calc-time-inp" id="calcS" type="text" inputmode="numeric" maxlength="2" placeholder="–">
         <button class="calc-clear-btn" onclick="clearCalcTime()" title="Nullstill alt" style="font-size:16px">↺</button>
       </div>
       <div class="calc-hint" data-i18n="calcHint">timer &nbsp;·&nbsp; minutter &nbsp;·&nbsp; sekunder</div>
+      </div>
+
+      <!-- Pace (mode: pace → time) -->
+      <div id="calcPaceBlock" style="display:none">
+      <div class="calc-label" data-i18n="calcPaceLbl" style="margin-top:16px">Tempo (min : sek per km)</div>
+      <div class="calc-time-row">
+        <input class="calc-time-inp" id="calcPM" type="text" inputmode="numeric" maxlength="2" placeholder="–">
+        <span class="calc-sep">:</span>
+        <input class="calc-time-inp" id="calcPS" type="text" inputmode="numeric" maxlength="2" placeholder="–">
+        <button class="calc-clear-btn" onclick="clearCalcPace()" title="Nullstill tempo" style="font-size:16px">↺</button>
+      </div>
+      <div class="calc-hint" data-i18n="calcPaceHint">minutter · sekunder per km</div>
+      </div>
 
       <!-- Result -->
       <div class="calc-result" id="calcResult">
         <div class="calc-res-row">
           <div>
-            <div class="calc-res-label" data-i18n="pace">Tempo</div>
+            <div class="calc-res-label" id="calcResMainLbl">Tempo</div>
             <div class="calc-res-val" id="calcResPace">–</div>
-            <div class="calc-res-unit">min / km</div>
+            <div class="calc-res-unit" id="calcResMainUnit">min / km</div>
           </div>
           <div style="text-align:right">
             <div class="calc-res-label" data-i18n="speed">Hastighet</div>
@@ -988,6 +1014,7 @@ header{ border-bottom:1px solid var(--gl-brd) !important; }
             <div class="calc-res-unit" data-i18n="speedUnit">km / t</div>
           </div>
         </div>
+        <div class="calc-res-hint" id="calcResHint"></div>
         <button class="calc-apply-btn" id="calcApplyBtn" onclick="applyCalcPace()" data-i18n="calcApply">Bruk dette tempoet ↑</button>
       </div>
 
@@ -1030,7 +1057,10 @@ const LANG={
       signIn:'Logg inn',signInSub:'Lagre innstillinger på alle enheter.',
       continueGoogle:'Fortsett med Google',cancel:'Avbryt',close:'Lukk',signOut:'Logg ut',
       language:'Språk',theme:'Tema',dark:'Mørk',light:'Lys',settings:'Innstillinger',
-      calcBannerTitle:'Beregn tempo fra løpstid',calcBannerSub:'Tast inn distanse og tid — få eksakt tempo og hastighet',calcTitle:'Beregn tempo fra løpstid',calcSub:'Skriv inn distanse og tid — få eksakt pace',
+      calcBannerTitle:'Tempokalkulator',calcBannerSub:'Regn ut tempo fra løpstid — eller sluttid fra tempo',calcTitle:'Tempokalkulator',calcSub:'Skriv inn distanse og tid — få eksakt tempo',
+      calcSubPace:'Skriv inn distanse og tempo — få sluttid',calcModeTime:'Tid → tempo',calcModePace:'Tempo → tid',
+      calcPaceLbl:'Tempo (min : sek per km)',calcPaceHint:'minutter · sekunder per km',finishTime:'Sluttid',
+      calcNeedTime:'Fyll inn distanse og tid',calcNeedPace:'Fyll inn distanse og tempo',calcBadSec:'Minutter og sekunder må være 0–59',
       calcDist:'Distanse',calcTime:'Tid (t : min : sek)',calcHint:'timer  ·  minutter  ·  sekunder',
       calcApply:'Bruk dette tempoet ↑',
       fbErr:'Firebase ikke koblet til',signedInOk:'✓ Logget inn!',signedOut:'Logget ut',
@@ -1043,7 +1073,10 @@ const LANG={
       signIn:'Sign in',signInSub:'Save your settings across all devices.',
       continueGoogle:'Continue with Google',cancel:'Cancel',close:'Close',signOut:'Sign out',
       language:'Language',theme:'Theme',dark:'Dark',light:'Light',settings:'Settings',
-      calcBannerTitle:'Calculate pace from race result',calcBannerSub:'Enter distance and time — get exact pace and speed',calcTitle:'Calculate pace from race result',calcSub:'Enter distance and time — get exact pace',
+      calcBannerTitle:'Pace calculator',calcBannerSub:'Get pace from a finish time — or finish time from a pace',calcTitle:'Pace calculator',calcSub:'Enter distance and time — get exact pace',
+      calcSubPace:'Enter distance and pace — get finish time',calcModeTime:'Time → pace',calcModePace:'Pace → time',
+      calcPaceLbl:'Pace (min : sec per km)',calcPaceHint:'minutes · seconds per km',finishTime:'Finish time',
+      calcNeedTime:'Enter distance and time',calcNeedPace:'Enter distance and pace',calcBadSec:'Minutes and seconds must be 0–59',
       calcDist:'Distance',calcTime:'Time (h : min : sec)',calcHint:'hours  ·  minutes  ·  seconds',
       calcApply:'Apply this pace ↑',
       fbErr:'Firebase not connected',signedInOk:'✓ Signed in!',signedOut:'Signed out',
@@ -1255,6 +1288,7 @@ function applyLang(l,save=true){
   document.querySelectorAll('[data-i18n]').forEach(el=>{const k=el.getAttribute('data-i18n');if(T()[k]!=null)el.textContent=T()[k];});
   buildDistList();
   buildUserSheet();
+  renderCalcMode();
   if(save)saveData({lang});
 }
 function toggleLang(){
@@ -1689,97 +1723,149 @@ if(window.visualViewport){
 })();
 
 // ═══ PACE CALCULATOR ════════════════════════════
+// Two modes sharing the distance fields:
+//   'time' — distance + finish time → pace & speed
+//   'pace' — distance + pace        → finish time & speed
 let calcPaceSec = null;
+let calcMode = lsGet('calcMode') === 'pace' ? 'pace' : 'time';
+
+const CALC_FIELDS = {
+  time: ['calcKm','calcMeters','calcH','calcM','calcS'],
+  pace: ['calcKm','calcMeters','calcPM','calcPS'],
+};
+const CALC_MAX_DIGITS = {calcMeters:3};
+
+function calcVal(id){ return parseInt(document.getElementById(id).value, 10) || 0; }
 
 function openCalcSheet(){
-  document.getElementById('calcOverlay').classList.add('show');
-  // Set up auto-advance on first open
   setupCalcInputs();
+  // Pace mode starts from the pace currently shown in the app
+  if(calcMode === 'pace' && !document.getElementById('calcPM').value && !document.getElementById('calcPS').value) fillCalcPaceFromApp();
+  renderCalcMode();
+  document.getElementById('calcOverlay').classList.add('show');
 }
 
-// Auto-advance between HH:MM:SS fields + backspace goes back
+function fillCalcPaceFromApp(){
+  document.getElementById('calcPM').value = Math.floor(paceSec/60);
+  document.getElementById('calcPS').value = pad2(paceSec%60);
+}
+
+function setCalcMode(mode){
+  if(mode === calcMode) return;
+  calcMode = mode;
+  lsSet('calcMode', mode);
+  if(mode === 'pace' && !document.getElementById('calcPM').value && !document.getElementById('calcPS').value) fillCalcPaceFromApp();
+  renderCalcMode();
+}
+
+// Syncs mode-dependent labels/visibility and recalculates
+function renderCalcMode(){
+  const t = T(), isPace = calcMode === 'pace';
+  document.getElementById('calcModeTime').classList.toggle('active', !isPace);
+  document.getElementById('calcModePace').classList.toggle('active', isPace);
+  document.getElementById('calcTimeBlock').style.display = isPace ? 'none' : '';
+  document.getElementById('calcPaceBlock').style.display = isPace ? '' : 'none';
+  document.getElementById('calcSub').textContent = isPace ? t.calcSubPace : t.calcSub;
+  document.getElementById('calcResMainLbl').textContent = isPace ? t.finishTime : t.pace;
+  document.getElementById('calcResMainUnit').textContent = isPace ? (lang==='no' ? 't : min : sek' : 'h : min : sec') : 'min / km';
+  runCalc();
+}
+
+// Auto-advance between fields + backspace on empty goes back
 let calcInputsReady = false;
 function setupCalcInputs(){
   if(calcInputsReady) return;
   calcInputsReady = true;
-  const fields = ['calcKm','calcMeters','calcH','calcM','calcS'];
-  const maxDigits = {calcKm:3, calcMeters:3, calcH:2, calcM:2, calcS:2};
-  fields.forEach((id, i) => {
+  ['calcKm','calcMeters','calcH','calcM','calcS','calcPM','calcPS'].forEach(id => {
     const inp = document.getElementById(id);
 
+    inp.addEventListener('focus', () => inp.select());
+
     inp.addEventListener('input', () => {
-      // Only allow digits
-      inp.value = inp.value.replace(/[^0-9]/g,'');
-      // Max digits: 3 for km/meters, 2 for time fields
-      const maxD = (id==='calcMeters') ? 3 : 2;
-      if(inp.value.length > maxD) inp.value = inp.value.slice(0,maxD);
-      // Auto-advance to next field when max digits reached
-      if(inp.value.length === maxD && i < fields.length - 1){
+      const maxD = CALC_MAX_DIGITS[id] || 2;
+      inp.value = inp.value.replace(/[^0-9]/g,'').slice(0,maxD);
+      const fields = CALC_FIELDS[calcMode], i = fields.indexOf(id);
+      if(inp.value.length === maxD && i >= 0 && i < fields.length - 1){
         document.getElementById(fields[i+1]).focus();
-        document.getElementById(fields[i+1]).select();
       }
+      if(id === 'calcKm' || id === 'calcMeters') markCalcPreset();
       runCalc();
     });
 
     inp.addEventListener('keydown', e => {
-      // Backspace on empty → go back to previous field
+      const fields = CALC_FIELDS[calcMode], i = fields.indexOf(id);
       if(e.key === 'Backspace' && inp.value === '' && i > 0){
         e.preventDefault();
-        const prev = document.getElementById(fields[i-1]);
-        prev.focus();
-        prev.select();
+        document.getElementById(fields[i-1]).focus();
+      } else if(e.key === 'Enter'){
+        inp.blur();
       }
     });
   });
+}
+
+// Highlight the preset chip matching the typed distance, if any
+function markCalcPreset(){
+  const km = calcVal('calcKm'), m = calcVal('calcMeters');
+  document.querySelectorAll('.calc-pre').forEach(b =>
+    b.classList.toggle('active', +b.dataset.km === km && +b.dataset.m === m && (km || m)));
 }
 
 function clearCalcDist(){
   document.getElementById('calcKm').value='';
   document.getElementById('calcMeters').value='';
-  document.querySelectorAll('.calc-pre').forEach(b=>b.classList.remove('active'));
+  markCalcPreset();
   document.getElementById('calcKm').focus();
   runCalc();
 }
 
 function clearCalcTime(){
-  ['calcH','calcM','calcS'].forEach(id => {
-    document.getElementById(id).value = '';
-  });
+  ['calcH','calcM','calcS'].forEach(id => { document.getElementById(id).value = ''; });
   document.getElementById('calcH').focus();
+  runCalc();
+}
+
+function clearCalcPace(){
+  ['calcPM','calcPS'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('calcPM').focus();
   runCalc();
 }
 
 function setCalcDist(km, m){
   document.getElementById('calcKm').value = km;
   document.getElementById('calcMeters').value = m > 0 ? String(m).padStart(3,'0') : '';
-  document.querySelectorAll('.calc-pre').forEach(b => b.classList.remove('active'));
-  if(event && event.target) event.target.classList.add('active');
+  markCalcPreset();
   runCalc();
 }
 
-function runCalc(){
-  const km      = parseInt(document.getElementById('calcKm').value)     || 0;
-  const meters  = parseInt(document.getElementById('calcMeters').value)  || 0;
-  const dist    = km + meters / 1000;
-  const h    = parseInt(document.getElementById('calcH').value) || 0;
-  const m    = parseInt(document.getElementById('calcM').value) || 0;
-  const s    = parseInt(document.getElementById('calcS').value) || 0;
+function showCalcResult(main, kmhVal, hint){
+  document.getElementById('calcResPace').textContent = main;
+  document.getElementById('calcResKmh').textContent  = kmhVal;
+  document.getElementById('calcResHint').textContent = hint || '';
+  document.getElementById('calcApplyBtn').disabled   = !calcPaceSec;
+}
 
-  const totalSec = h * 3600 + m * 60 + s;
-  if (!dist || dist <= 0 || totalSec <= 0) {
-    calcPaceSec = null;
-    document.getElementById('calcResPace').textContent = '–';
-    document.getElementById('calcResKmh').textContent  = '–';
-    return;
+function runCalc(){
+  const t = T();
+  const dist = calcVal('calcKm') + calcVal('calcMeters') / 1000;
+  calcPaceSec = null;
+
+  if(calcMode === 'pace'){
+    const pm = calcVal('calcPM'), ps = calcVal('calcPS');
+    if(ps > 59) return showCalcResult('–', '–', t.calcBadSec);
+    const pace = pm * 60 + ps;
+    if(dist <= 0 || pace <= 0) return showCalcResult('–', '–', t.calcNeedPace);
+    calcPaceSec = pace;
+    return showCalcResult(fmtTime(Math.round(pace * dist)), (3600 / pace).toFixed(2));
   }
 
+  const h = calcVal('calcH'), m = calcVal('calcM'), s = calcVal('calcS');
+  if(m > 59 || s > 59) return showCalcResult('–', '–', t.calcBadSec);
+  const totalSec = h * 3600 + m * 60 + s;
+  if(dist <= 0 || totalSec <= 0) return showCalcResult('–', '–', t.calcNeedTime);
   calcPaceSec = totalSec / dist;
-  const pMin  = Math.floor(calcPaceSec / 60);
-  const pSec  = Math.round(calcPaceSec % 60);
-  const kmhVal = 3600 / calcPaceSec;
-
-  document.getElementById('calcResPace').textContent = `${pMin}:${pad2(pSec)}`;
-  document.getElementById('calcResKmh').textContent  = kmhVal.toFixed(2);
+  // Round once so 4:59.6 shows as 5:00, not 4:60
+  showCalcResult(fmtPace(Math.round(calcPaceSec)), (3600 / calcPaceSec).toFixed(2));
 }
 
 function applyCalcPace(){
