@@ -476,7 +476,7 @@ header{position:relative;z-index:10;display:flex;align-items:center;justify-cont
 .calc-res-val{font-size:44px;font-weight:900;letter-spacing:-2px;color:var(--txt);font-variant-numeric:tabular-nums;line-height:1}
 .calc-res-unit{font-size:11px;color:var(--dim);margin-top:4px}
 .calc-seg{display:flex;gap:4px;padding:4px;margin-bottom:18px;background:var(--card2);border:1px solid var(--brd);border-radius:16px}
-.calc-seg-btn{flex:1;padding:10px 8px;border:none;border-radius:12px;background:transparent;color:var(--txt2);font-size:14px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:var(--tr)}
+.calc-seg-btn{flex:1;min-width:0;padding:10px 4px;border:none;border-radius:12px;background:transparent;color:var(--txt2);font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:var(--tr);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .calc-seg-btn.active{background:var(--red);color:#fff;box-shadow:0 2px 10px rgba(232,21,42,0.3)}
 .calc-res-hint{font-size:12px;color:var(--txt2);text-align:center;margin:-4px 0 12px}
 .calc-res-hint:empty{display:none}
@@ -949,11 +949,13 @@ header{ border-bottom:1px solid var(--gl-brd) !important; }
 
       <!-- Mode toggle -->
       <div class="calc-seg">
-        <button class="calc-seg-btn active" id="calcModeTime" onclick="setCalcMode('time')" data-i18n="calcModeTime">Tid → tempo</button>
-        <button class="calc-seg-btn" id="calcModePace" onclick="setCalcMode('pace')" data-i18n="calcModePace">Tempo → tid</button>
+        <button class="calc-seg-btn active" id="calcModeTime" onclick="setCalcMode('time')" data-i18n="calcModeTime">Finn tempo</button>
+        <button class="calc-seg-btn" id="calcModePace" onclick="setCalcMode('pace')" data-i18n="calcModePace">Finn tid</button>
+        <button class="calc-seg-btn" id="calcModeDist" onclick="setCalcMode('dist')" data-i18n="calcModeDist">Finn distanse</button>
       </div>
 
-      <!-- Distance -->
+      <!-- Distance (hidden in mode: time + pace → distance) -->
+      <div id="calcDistBlock">
       <div class="calc-label" data-i18n="calcDist">Distanse</div>
       <div class="calc-dist-presets">
         <button class="calc-pre" data-km="5" data-m="0" onclick="setCalcDist(5,0)">5 km</button>
@@ -972,6 +974,7 @@ header{ border-bottom:1px solid var(--gl-brd) !important; }
           <span class="calc-field-lbl">m</span>
         </div>
         <button class="calc-clear-btn" onclick="clearCalcDist()" title="Nullstill distanse" style="font-size:16px;align-self:center;flex-shrink:0">↺</button>
+      </div>
       </div>
 
       <!-- Time (mode: time → pace) -->
@@ -1057,8 +1060,8 @@ const LANG={
       signIn:'Logg inn',signInSub:'Lagre innstillinger på alle enheter.',
       continueGoogle:'Fortsett med Google',cancel:'Avbryt',close:'Lukk',signOut:'Logg ut',
       language:'Språk',theme:'Tema',dark:'Mørk',light:'Lys',settings:'Innstillinger',
-      calcBannerTitle:'Tempokalkulator',calcBannerSub:'Regn ut tempo fra løpstid — eller sluttid fra tempo',calcTitle:'Tempokalkulator',calcSub:'Skriv inn distanse og tid — få eksakt tempo',
-      calcSubPace:'Skriv inn distanse og tempo — få sluttid',calcModeTime:'Tid → tempo',calcModePace:'Tempo → tid',
+      calcBannerTitle:'Tempokalkulator',calcBannerSub:'Finn tempo, sluttid eller distanse',calcTitle:'Tempokalkulator',calcSub:'Skriv inn distanse og tid — få eksakt tempo',
+      calcSubPace:'Skriv inn distanse og tempo — få sluttid',calcModeTime:'Finn tempo',calcModePace:'Finn tid',calcModeDist:'Finn distanse',calcSubDist:'Skriv inn tid og tempo — få distansen',calcNeedDist:'Fyll inn tid og tempo',distance:'Distanse',
       calcPaceLbl:'Tempo (min : sek per km)',calcPaceHint:'minutter · sekunder per km',finishTime:'Sluttid',
       calcNeedTime:'Fyll inn distanse og tid',calcNeedPace:'Fyll inn distanse og tempo',calcBadSec:'Minutter og sekunder må være 0–59',
       calcDist:'Distanse',calcTime:'Tid (t : min : sek)',calcHint:'timer  ·  minutter  ·  sekunder',
@@ -1073,8 +1076,8 @@ const LANG={
       signIn:'Sign in',signInSub:'Save your settings across all devices.',
       continueGoogle:'Continue with Google',cancel:'Cancel',close:'Close',signOut:'Sign out',
       language:'Language',theme:'Theme',dark:'Dark',light:'Light',settings:'Settings',
-      calcBannerTitle:'Pace calculator',calcBannerSub:'Get pace from a finish time — or finish time from a pace',calcTitle:'Pace calculator',calcSub:'Enter distance and time — get exact pace',
-      calcSubPace:'Enter distance and pace — get finish time',calcModeTime:'Time → pace',calcModePace:'Pace → time',
+      calcBannerTitle:'Pace calculator',calcBannerSub:'Find pace, finish time or distance',calcTitle:'Pace calculator',calcSub:'Enter distance and time — get exact pace',
+      calcSubPace:'Enter distance and pace — get finish time',calcModeTime:'Find pace',calcModePace:'Find time',calcModeDist:'Find distance',calcSubDist:'Enter time and pace — get distance',calcNeedDist:'Enter time and pace',distance:'Distance',
       calcPaceLbl:'Pace (min : sec per km)',calcPaceHint:'minutes · seconds per km',finishTime:'Finish time',
       calcNeedTime:'Enter distance and time',calcNeedPace:'Enter distance and pace',calcBadSec:'Minutes and seconds must be 0–59',
       calcDist:'Distance',calcTime:'Time (h : min : sec)',calcHint:'hours  ·  minutes  ·  seconds',
@@ -1093,6 +1096,7 @@ const ALL_DISTS=(()=>{
   d.push({id:'d_100m',km:0.1});
   d.push({id:'d_200m',km:0.2});
   d.push({id:'d_400', km:0.4});
+  d.push({id:'d_600m',km:0.6});
   d.push({id:'d_800m',km:0.8});
   d.push({id:'d_1500',km:1.5});
   d.push({id:'d_mile',km:1.60934});
@@ -1109,6 +1113,7 @@ function distName(id,km){
   if(id==='d_100m') return '100 m';
   if(id==='d_200m') return '200 m';
   if(id==='d_400')  return '400 m';
+  if(id==='d_600m') return '600 m';
   if(id==='d_800m') return '800 m';
   if(id==='d_1500') return '1 500 m';
   if(id==='d_mile') return '1 mile';
@@ -1358,15 +1363,15 @@ function bumpAnim(el,dir){el.classList.remove('bump','bump-down');void el.offset
 
 // ═══ JACK DANIELS VDOT ZONE SYSTEM ════════════
 // Ref: Daniels' Running Formula (3rd ed.)
-// VDOT is calculated from a race result, then training paces
-// are derived at specific %VO2max levels using Daniels' formula.
+// VDOT is calculated from a 10K result; Daniels' race curve then gives the
+// pace sustainable for a given duration, which anchors the OLT zone borders.
 
 const ZONE_DEF=[
-  {id:1,color:'#94a3b8', name:{no:'Intensitetssone 1',en:'Intensity zone 1'}, desc:{no:'Veldig lett · Kan prate uanstrengt',en:'Very easy · Can talk freely'},           pctLo:0,    pctHi:0.70},
-  {id:2,color:'#60a5fa', name:{no:'Intensitetssone 2',en:'Intensity zone 2'}, desc:{no:'Nokså lett · Kan si lengre setninger relativt uanstrengt',en:'Fairly easy · Can say longer sentences fairly easily'}, pctLo:0.70, pctHi:0.83},
-  {id:3,color:'#4ade80', name:{no:'Intensitetssone 3',en:'Intensity zone 3'}, desc:{no:'Behagelig anstrengende · Kan si korte setninger',en:'Comfortably hard · Can say short sentences'},               pctLo:0.83, pctHi:0.88},
-  {id:4,color:'#fbbf24', name:{no:'Intensitetssone 4',en:'Intensity zone 4'}, desc:{no:'Anstrengende · Kan si noen ord eller svært korte setninger',en:'Hard · Can say a few words or very short sentences'}, pctLo:0.88, pctHi:0.95},
-  {id:5,color:'#ef4444', name:{no:'Intensitetssone 5',en:'Intensity zone 5'}, desc:{no:'Veldig anstrengende · Kan kun si et ord eller to, puster tungt',en:'Very hard · Can only say a word or two, breathing heavily'}, pctLo:0.95, pctHi:Infinity},
+  {id:1,color:'#94a3b8', name:{no:'Intensitetssone 1',en:'Intensity zone 1'}, desc:{no:'Veldig lett · Kan prate uanstrengt',en:'Very easy · Can talk freely'}},
+  {id:2,color:'#60a5fa', name:{no:'Intensitetssone 2',en:'Intensity zone 2'}, desc:{no:'Nokså lett · Kan si lengre setninger relativt uanstrengt',en:'Fairly easy · Can say longer sentences fairly easily'}},
+  {id:3,color:'#4ade80', name:{no:'Intensitetssone 3',en:'Intensity zone 3'}, desc:{no:'Behagelig anstrengende · Kan si korte setninger',en:'Comfortably hard · Can say short sentences'}},
+  {id:4,color:'#fbbf24', name:{no:'Intensitetssone 4',en:'Intensity zone 4'}, desc:{no:'Anstrengende · Kan si noen ord eller svært korte setninger',en:'Hard · Can say a few words or very short sentences'}},
+  {id:5,color:'#ef4444', name:{no:'Intensitetssone 5',en:'Intensity zone 5'}, desc:{no:'Veldig anstrengende · Kan kun si et ord eller to, puster tungt',en:'Very hard · Can only say a word or two, breathing heavily'}},
 ];
 
 // Daniels' formula: %VO2max from race duration (t in minutes)
@@ -1394,6 +1399,9 @@ function calcVDOT(distKm, timeSec){
   return vo2fromVelocity(v) / pctVO2fromTime(t);
 }
 
+// Threshold ≈ pace you could race for ~60 min (≈4 mmol, OLT I3/I4 border)
+function thresholdPaceSec(t10){ return vdotToPaceSec(calcVDOT(10, t10), pctVO2fromTime(60)); }
+
 let cachedVDOT = null;
 function getVDOT(){
   if(!t10kSec) return null;
@@ -1403,21 +1411,21 @@ function getVDOT(){
 
 function getZoneBounds(){
   const vdot = getVDOT();
-  if(!vdot){
-    // Fallback generic bounds when no 10K time set (based on 5:00/km default)
-    return ZONE_DEF.map((z,i)=>{
-      const paces=[Infinity,420,360,310,270,0];
-      return {...z, minS:paces[i+1]||0, maxS:paces[i]};
-    });
-  }
-  return ZONE_DEF.map(z=>({
-    ...z,
-    maxS: z.pctLo===0    ? Infinity : vdotToPaceSec(vdot, z.pctLo),
-    minS: z.pctHi===Infinity ? 0    : vdotToPaceSec(vdot, z.pctHi),
-  }));
+  if(!vdot) return null; // zones are personal — no guessing without a 10K time
+  // Olympiatoppen defines I1–I5 by lactate/HR, not pace. Borders are estimated
+  // from race-equivalent durations on Daniels' race curve:
+  //   I1/I2 ≈2 mmol  → threshold pace +25 %
+  //   I2/I3 ≈2.5 mmol → pace you could race for ~150 min
+  //   I3/I4 ≈4 mmol  → pace you could race for ~60 min (threshold)
+  //   I4/I5 ≈6 mmol  → pace you could race for ~30 min
+  const racePace = min => vdotToPaceSec(vdot, pctVO2fromTime(min));
+  const thr = racePace(60);
+  const borders = [Infinity, Math.round(thr*1.25), racePace(150), thr, racePace(30), 0];
+  return ZONE_DEF.map((z,i)=>({...z, maxS:borders[i], minS:borders[i+1]}));
 }
 function getZone(s){
   const zones=getZoneBounds();
+  if(!zones) return null;
   return zones.find(z=>s>=z.minS&&(z.maxS===Infinity||s<z.maxS))||zones[zones.length-1];
 }
 function buildZoneSpectrum(){
@@ -1430,14 +1438,20 @@ function updateZone(){
   const dot=document.getElementById('zoneDot'),nm=document.getElementById('zoneName'),
         dc=document.getElementById('zoneDesc'),rng=document.getElementById('zoneRange');
   if(!dot)return;
-  dot.style.background=z.color;dot.style.boxShadow='0 0 12px '+z.color+',0 0 4px '+z.color;
-  nm.textContent=z.name[lang]||z.name.no;
-  dc.textContent=z.desc[lang]||z.desc.no;
-  if(!t10kSec){
+  if(!z){
+    dot.style.background='var(--dim)';dot.style.boxShadow='none';
+    nm.textContent=lang==='no'?'Intensitetssone':'Intensity zone';
+    dc.textContent=lang==='no'?'Legg inn 10K-tid for å se sonen din':'Add your 10K time to see your zone';
     rng.textContent=lang==='no'?'Sett 10K-tid ›':'Set 10K time ›';
     rng.style.color='var(--red)';rng.style.cursor='pointer';
     rng.onclick=()=>openSheet('userOverlay');
-  } else {
+    ZONE_DEF.forEach(zz=>{const sg=document.getElementById('zseg_'+zz.id);if(sg)sg.classList.remove('active');});
+    return;
+  }
+  dot.style.background=z.color;dot.style.boxShadow='0 0 12px '+z.color+',0 0 4px '+z.color;
+  nm.textContent=z.name[lang]||z.name.no;
+  dc.textContent=z.desc[lang]||z.desc.no;
+  {
     rng.style.color='';rng.style.cursor='';rng.onclick=null;
     const lo=z.maxS===Infinity?'> '+fmtPace(z.minS):fmtPace(z.maxS);
     const hi=z.minS===0?'< '+fmtPace(z.maxS):fmtPace(z.minS);
@@ -1549,7 +1563,7 @@ function buildUserSheet(){
     </div>
     <button onclick="apply10k()" style="width:100%;padding:14px;border-radius:14px;border:none;background:var(--blue);
             color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif">${t10kSave}</button>
-    ${t10kSec?`<div style="font-size:11px;color:var(--dim);margin-top:8px;text-align:center">${lang==='no'?'Terskel-pace':'Threshold pace'}: <b style="color:var(--txt)">${fmtPace(Math.round(t10kSec/10))}/km</b></div>`:''}
+    ${t10kSec?`<div style="font-size:11px;color:var(--dim);margin-top:8px;text-align:center">${lang==='no'?'Terskel-pace':'Threshold pace'}: <b style="color:var(--txt)">${fmtPace(thresholdPaceSec(t10kSec))}/km</b></div>`:''}
   </div>`;
   if(curUser){
     hd.innerHTML=`<div class="handle"></div><div class="profile-row"><div class="pav">${curUser.photoURL?`<img src="${curUser.photoURL}">`:( curUser.displayName||'?')[0].toUpperCase()}</div><div><div class="pn">${curUser.displayName||'User'}</div><div class="pe">${curUser.email||''}</div></div></div>`;
@@ -1572,7 +1586,7 @@ function apply10k(){
   const secs=m*60+s;
   if(secs<600||secs>7200){showToast(lang==='no'?'Ugyldig tid (10–120 min)':'Invalid time (10–120 min)');return;}
   save10k(secs);
-  showToast(lang==='no'?`✓ Terskel-pace: ${fmtPace(Math.round(secs/10))}/km`:`✓ Threshold pace: ${fmtPace(Math.round(secs/10))}/km`);
+  showToast(lang==='no'?`✓ Terskel-pace: ${fmtPace(thresholdPaceSec(secs))}/km`:`✓ Threshold pace: ${fmtPace(thresholdPaceSec(secs))}/km`);
 }
 
 // ═══ TAP → INPUT MODAL ════════════════════════
@@ -1726,12 +1740,14 @@ if(window.visualViewport){
 // Two modes sharing the distance fields:
 //   'time' — distance + finish time → pace & speed
 //   'pace' — distance + pace        → finish time & speed
+//   'dist' — finish time + pace     → distance & speed
 let calcPaceSec = null;
-let calcMode = lsGet('calcMode') === 'pace' ? 'pace' : 'time';
+let calcMode = ['pace','dist'].includes(lsGet('calcMode')) ? lsGet('calcMode') : 'time';
 
 const CALC_FIELDS = {
   time: ['calcKm','calcMeters','calcH','calcM','calcS'],
   pace: ['calcKm','calcMeters','calcPM','calcPS'],
+  dist: ['calcH','calcM','calcS','calcPM','calcPS'],
 };
 const CALC_MAX_DIGITS = {calcMeters:3};
 
@@ -1740,7 +1756,7 @@ function calcVal(id){ return parseInt(document.getElementById(id).value, 10) || 
 function openCalcSheet(){
   setupCalcInputs();
   // Pace mode starts from the pace currently shown in the app
-  if(calcMode === 'pace' && !document.getElementById('calcPM').value && !document.getElementById('calcPS').value) fillCalcPaceFromApp();
+  if(calcMode !== 'time' && !document.getElementById('calcPM').value && !document.getElementById('calcPS').value) fillCalcPaceFromApp();
   renderCalcMode();
   document.getElementById('calcOverlay').classList.add('show');
 }
@@ -1754,20 +1770,22 @@ function setCalcMode(mode){
   if(mode === calcMode) return;
   calcMode = mode;
   lsSet('calcMode', mode);
-  if(mode === 'pace' && !document.getElementById('calcPM').value && !document.getElementById('calcPS').value) fillCalcPaceFromApp();
+  if(mode !== 'time' && !document.getElementById('calcPM').value && !document.getElementById('calcPS').value) fillCalcPaceFromApp();
   renderCalcMode();
 }
 
 // Syncs mode-dependent labels/visibility and recalculates
 function renderCalcMode(){
-  const t = T(), isPace = calcMode === 'pace';
-  document.getElementById('calcModeTime').classList.toggle('active', !isPace);
-  document.getElementById('calcModePace').classList.toggle('active', isPace);
-  document.getElementById('calcTimeBlock').style.display = isPace ? 'none' : '';
-  document.getElementById('calcPaceBlock').style.display = isPace ? '' : 'none';
-  document.getElementById('calcSub').textContent = isPace ? t.calcSubPace : t.calcSub;
-  document.getElementById('calcResMainLbl').textContent = isPace ? t.finishTime : t.pace;
-  document.getElementById('calcResMainUnit').textContent = isPace ? (lang==='no' ? 't : min : sek' : 'h : min : sec') : 'min / km';
+  const t = T(), m = calcMode, show = (id, on) => { document.getElementById(id).style.display = on ? '' : 'none'; };
+  document.getElementById('calcModeTime').classList.toggle('active', m === 'time');
+  document.getElementById('calcModePace').classList.toggle('active', m === 'pace');
+  document.getElementById('calcModeDist').classList.toggle('active', m === 'dist');
+  show('calcDistBlock', m !== 'dist');
+  show('calcTimeBlock', m !== 'pace');
+  show('calcPaceBlock', m !== 'time');
+  document.getElementById('calcSub').textContent = {time:t.calcSub, pace:t.calcSubPace, dist:t.calcSubDist}[m];
+  document.getElementById('calcResMainLbl').textContent = {time:t.pace, pace:t.finishTime, dist:t.distance}[m];
+  document.getElementById('calcResMainUnit').textContent = {time:'min / km', pace:(lang==='no' ? 't : min : sek' : 'h : min : sec'), dist:'km'}[m];
   runCalc();
 }
 
@@ -1849,6 +1867,16 @@ function runCalc(){
   const t = T();
   const dist = calcVal('calcKm') + calcVal('calcMeters') / 1000;
   calcPaceSec = null;
+
+  if(calcMode === 'dist'){
+    const h = calcVal('calcH'), m = calcVal('calcM'), s = calcVal('calcS');
+    const pm = calcVal('calcPM'), ps = calcVal('calcPS');
+    if(m > 59 || s > 59 || ps > 59) return showCalcResult('–', '–', t.calcBadSec);
+    const totalSec = h * 3600 + m * 60 + s, pace = pm * 60 + ps;
+    if(totalSec <= 0 || pace <= 0) return showCalcResult('–', '–', t.calcNeedDist);
+    calcPaceSec = pace;
+    return showCalcResult((totalSec / pace).toFixed(2), (3600 / pace).toFixed(2));
+  }
 
   if(calcMode === 'pace'){
     const pm = calcVal('calcPM'), ps = calcVal('calcPS');
